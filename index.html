@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>삼일맛지도</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍚</text></svg>">
+</head>
+<body>
+  <div class="preview" id="notice"></div>
+  <div class="brand-strip" aria-hidden="true"></div>
+
+  <header class="header">
+    <button class="brand" id="home" aria-label="삼일맛지도 목록으로">
+      <img class="pwc-logo" src="/pwc-logo.png" alt="PwC" width="218" height="110">
+      <span class="brand-divider" aria-hidden="true"></span>
+      <span class="brand-mark">
+        <svg class="brand-fallback" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21.5s7-6.6 7-12a7 7 0 0 0-14 0c0 5.4 7 12 7 12Z" fill="#fff"/>
+          <circle cx="12" cy="9.5" r="2.6" fill="#d04a02"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">삼일맛지도</span>
+        <span class="brand-sub">Samil PwC 구성원 맛집 아카이브</span>
+      </span>
+    </button>
+
+    <span class="header-note">동료의 한 끼 경험이, 우리의 맛집 지도가 되도록.</span>
+
+    <div class="header-user" id="header-user" hidden>
+      <span class="who" id="who"></span>
+      <button class="ghost" id="logout">로그아웃</button>
+      <button class="primary" id="new-top">+ 식당 추천하기</button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <footer>
+    <span class="footer-label" id="footer-label"></span>
+  </footer>
+
+  <dialog id="random-dialog" aria-label="랜덤 식당 선택 결과"><div id="random-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
