@@ -6,3 +6,7 @@ dist/
 .DS_Store
 *.log
 *.local.md
+
+.vercel
+.env*
+!.env.example
