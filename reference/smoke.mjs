@@ -4,6 +4,7 @@ import { state, candidates, clearFilters, applyQuick, conditionLabel } from '../
 import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf } from '../src/ui.js';
 import { mapPanel } from '../src/map.js';
 import { QUICK } from '../src/config.js';
+import { regionFromAddress, cuisineFromCategory, placeLink } from '../src/kakao.js';
 
 const R = (o) => ({
   id: o.id, name: o.name, region: o.region ?? '용산', address: '서울 용산구 한강대로 100',
@@ -97,6 +98,17 @@ eq('핀 개수 = 좌표 있는 식당 수', (panel.match(/class="pin"/g) || []).
 eq("좌표 없는 1곳은 '위치 확인 중'으로 안내", panel.includes('위치 확인 중 1곳'), true);
 const noCoords = mapPanel([], []);
 eq('좌표가 하나도 없으면 약도를 안 그린다', noCoords.includes('<svg'), false);
+
+console.log('\n── 카카오 장소 → 등록 칸 ──');
+eq('서울은 구 이름', regionFromAddress('서울 용산구 한강로2가 191'), '용산');
+eq('광역시는 시 이름', regionFromAddress('부산 해운대구 우동 1411'), '부산');
+eq('도는 시·군 이름', regionFromAddress('경기 성남시 분당구 정자동 178'), '성남');
+eq('한식 + 세분류', JSON.stringify(cuisineFromCategory('음식점 > 한식 > 해장국')), JSON.stringify({ cuisine: '한식', sub: '해장국' }));
+eq('아시아음식 → 아시안', cuisineFromCategory('음식점 > 아시아음식 > 베트남음식').cuisine, '아시안');
+eq('카페 → 카페·디저트', cuisineFromCategory('음식점 > 카페 > 커피전문점').cuisine, '카페·디저트');
+eq('술집은 음식 종류를 정하지 않는다', cuisineFromCategory('음식점 > 술집 > 호프,요리주점').cuisine, null);
+eq('지도 링크', placeLink({ id: '12345' }), 'https://place.map.kakao.com/12345');
+eq('이상한 ID면 링크 없음', placeLink({ id: '12a' }), '');
 
 console.log(`\n${fail ? '❌' : '✅'}  통과 ${pass} / 실패 ${fail}\n`);
 process.exit(fail ? 1 : 0);

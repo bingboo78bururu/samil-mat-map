@@ -53,6 +53,9 @@ export const ALLOWED_EMAIL_DOMAINS = String(env.VITE_ALLOWED_EMAIL_DOMAINS || ''
 
 export const IS_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
+// 카카오 JavaScript 키(공개 키). 없으면 등록 화면의 장소 검색만 빠지고 직접 입력으로 동작합니다.
+export const KAKAO_JS_KEY = env.VITE_KAKAO_JS_KEY || '';
+
 // 화면에 그대로 쓰는 문구. 기획안에 지정된 문장을 바꾸지 마세요.
 export const MSG = {
   loading: '추천을 불러오는 중이에요.',

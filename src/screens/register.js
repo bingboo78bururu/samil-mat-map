@@ -4,6 +4,9 @@ import { createRestaurant, describeError } from '../api.js';
 import { clearFilters, loadRestaurants } from '../state.js';
 import { toList } from '../router.js';
 import {
+  kakaoEnabled, searchPlaces, regionFromAddress, cuisineFromCategory, placeLink,
+} from '../kakao.js';
+import {
   options, esc, validLink, scrollToTop,
   clearFieldErrors, showFieldError, focusFirstError, notify,
 } from '../ui.js';
@@ -23,9 +26,15 @@ export function renderRegister(app) {
       <div class="notice">${MSG.privacy}</div>
 
       <div class="form-grid">
-        <label class="field">식당명 <span class="muted">*</span>
-          <input name="name" class="control" maxlength="60" placeholder="상호명을 입력해주세요">
-        </label>
+        <div class="field place-field">
+          <label for="place-name">식당명 <span class="muted">*</span></label>
+          <input id="place-name" name="name" class="control" maxlength="60" autocomplete="off"
+                 placeholder="상호명을 입력해주세요"
+                 ${kakaoEnabled() ? 'role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="place-results"' : ''}>
+          ${kakaoEnabled() ? `
+          <ul class="place-results" id="place-results" role="listbox" aria-label="카카오맵 검색 결과" hidden></ul>
+          <small id="place-hint">상호명을 입력하면 카카오맵에서 찾아 주소·지역·지도 링크를 채워드려요.</small>` : ''}
+        </div>
         <label class="field">지역 <span class="muted">*</span>
           <input name="region" class="control" maxlength="30" value="${esc(DEFAULT_REGION)}" placeholder="용산, 부산 등">
         </label>
@@ -89,6 +98,8 @@ export function renderRegister(app) {
 
   const form = document.getElementById('register-form');
   const errorBox = document.getElementById('register-error');
+
+  if (kakaoEnabled()) bindPlaceSearch(form);
 
   form.onsubmit = async (e) => {
     e.preventDefault();
@@ -158,4 +169,139 @@ export function renderRegister(app) {
   };
 
   scrollToTop();
+}
+
+// --- 카카오 장소 검색 --------------------------------------------------
+// 식당명을 입력하면 카카오맵 검색 결과를 아래에 보여주고,
+// 고르면 식당명·주소·지역·지도 링크(+ 확실할 때만 음식 종류·세분류)를 채웁니다.
+// 값은 모두 사용자가 고칠 수 있고, 검색이 안 되면 지금처럼 직접 입력합니다.
+function bindPlaceSearch(form) {
+  const input = form.elements.name;
+  const list = document.getElementById('place-results');
+  const hint = document.getElementById('place-hint');
+  let results = [];
+  let active = -1;
+  let timer = 0;
+  let seq = 0;
+  let autoSub = '';
+
+  const close = () => {
+    list.hidden = true;
+    list.innerHTML = '';
+    results = [];
+    active = -1;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+  };
+
+  const highlight = (i) => {
+    active = i;
+    list.querySelectorAll('[role=option]').forEach((el, j) => el.setAttribute('aria-selected', String(j === i)));
+    if (i >= 0) {
+      input.setAttribute('aria-activedescendant', `place-opt-${i}`);
+      document.getElementById(`place-opt-${i}`)?.scrollIntoView({ block: 'nearest' });
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
+  };
+
+  const showMessage = (text) => {
+    results = [];
+    active = -1;
+    list.innerHTML = `<li class="place-empty">${esc(text)}</li>`;
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'false');
+  };
+
+  const show = (places) => {
+    if (!places.length) { showMessage('카카오맵에서 찾지 못했어요. 직접 입력해주세요.'); return; }
+    results = places;
+    list.innerHTML = places.map((p, i) => `
+      <li class="place-option" role="option" id="place-opt-${i}" data-i="${i}" aria-selected="false">
+        <strong>${esc(p.place_name)}</strong>
+        <span>${esc(p.road_address_name || p.address_name)}</span>
+        ${p.category_name ? `<span class="place-cat">${esc(p.category_name.split('>').map((s) => s.trim()).slice(1).join(' · ') || p.category_name)}</span>` : ''}
+      </li>`).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    highlight(-1);
+  };
+
+  const clearError = (name) => {
+    const el = form.elements[name];
+    if (!el?.hasAttribute('aria-invalid')) return;
+    el.removeAttribute('aria-invalid');
+    el.closest('.field')?.querySelector('.field-error')?.remove();
+  };
+
+  const set = (name, value) => {
+    const el = form.elements[name];
+    el.value = el.maxLength > 0 ? value.slice(0, el.maxLength) : value;
+    clearError(name);
+  };
+
+  const choose = (place) => {
+    const address = place.road_address_name || place.address_name || '';
+    set('name', place.place_name || '');
+    if (address) set('address', address);
+    const region = regionFromAddress(place.address_name || address);
+    if (region) set('region', region);
+    const link = placeLink(place);
+    if (link) set('link', link);
+    const { cuisine, sub } = cuisineFromCategory(place.category_name);
+    if (cuisine) set('cuisine', cuisine);
+    // 세분류는 사용자가 직접 쓴 값이면 두고, 비었거나 앞서 자동으로 채운 값이면 바꿉니다.
+    const currentSub = form.elements.sub.value.trim();
+    if (!currentSub || currentSub === autoSub) {
+      set('sub', sub);
+      autoSub = form.elements.sub.value;
+    }
+    hint.textContent = '카카오맵에서 불러왔어요. 주소와 지역이 맞는지 확인해주세요.';
+    close();
+  };
+
+  const search = async (query) => {
+    const mine = ++seq;
+    try {
+      const places = await searchPlaces(query);
+      if (mine !== seq || document.activeElement !== input) return;
+      show(places);
+    } catch {
+      if (mine !== seq) return;
+      close();
+      hint.textContent = '카카오맵 검색을 불러오지 못했어요. 직접 입력해주세요.';
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const query = input.value.trim();
+    if (query.length < 2) { seq++; close(); return; }
+    timer = setTimeout(() => search(query), 300);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown' && results.length) {
+      e.preventDefault();
+      highlight((active + 1) % results.length);
+    } else if (e.key === 'ArrowUp' && results.length) {
+      e.preventDefault();
+      highlight(active <= 0 ? results.length - 1 : active - 1);
+    } else if (e.key === 'Enter' && active >= 0) {
+      e.preventDefault(); // 폼 제출 대신 선택
+      choose(results[active]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+    }
+  });
+
+  // mousedown을 막아 입력칸 포커스를 유지해야 click이 blur보다 먼저 처리됩니다.
+  list.addEventListener('mousedown', (e) => e.preventDefault());
+  list.addEventListener('click', (e) => {
+    const li = e.target.closest('[role=option]');
+    if (li) choose(results[Number(li.dataset.i)]);
+  });
+  input.addEventListener('blur', () => { seq++; clearTimeout(timer); close(); });
 }

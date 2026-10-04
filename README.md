@@ -5,7 +5,7 @@
 - 화면: S0 로그인·회원가입 / S1 목록·약도 / S2 식당 상세 / S3 추천 등록 / S4 랜덤 결과(창)
 - 공동 저장소: Supabase (Postgres + RLS)
 - **이번 범위 밖**
-  - 카카오맵 연결 — 좌표 컬럼(`lat`, `lng`, `kakao_place_id`)만 준비. 값이 없는 식당은 '위치 확인 중'. 임의 좌표 생성 금지
+  - 카카오맵 지도 표시 — 좌표 컬럼(`lat`, `lng`, `kakao_place_id`)만 준비. 값이 없는 식당은 '위치 확인 중'. 임의 좌표 생성 금지 (추천 등록의 카카오 장소 검색은 연결됨)
   - 사내 메일 인증 — 로그인 게이트는 접근을 제한할 뿐, **삼일 구성원임을 확인해주지 않습니다.** 기획·PPT에 "구성원만 접근 가능"이라고 쓰면 안 됩니다
   - 사다리타기·함께 결정하기(S5), 후보 담기 — 기획팀 합의 후 다음 스코프
 
@@ -132,14 +132,15 @@ reference/
 정적 사이트입니다.
 
 - 빌드: `npm run build` / 출력: `dist`
-- 환경변수: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_ALLOWED_EMAIL_DOMAINS`
+- 환경변수: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_ALLOWED_EMAIL_DOMAINS`, `VITE_KAKAO_JS_KEY`
+- 카카오 JavaScript 키는 카카오 디벨로퍼스 > 앱 > 플랫폼 키 > JavaScript 키의 **JavaScript SDK 도메인**에 배포 주소와 `http://localhost:5173` 이 등록돼 있어야 동작합니다
 - `vercel.json` 에 CSP·보안 헤더·`noindex` 설정이 들어 있습니다
 
 ---
 
 ## 7. 열려 있는 항목
 
-- 카카오 개발자 계정·API 키 발급 담당 미정 (배포 도메인 확보 후 등록 필요)
+- 카카오 장소 검색(추천 등록 화면)은 붙었지만 좌표(`lat` `lng` `kakao_place_id`)는 아직 저장하지 않습니다. 등록 RPC에 인자를 추가하는 마이그레이션이 필요합니다. 지도 링크(`https://place.map.kakao.com/<id>`)에 장소 ID가 남아 있어 나중에 채울 수 있습니다
 - v8 조사 자료 42곳은 **가격이 확인된 곳이 1곳뿐**이라 예산 필터가 사실상 작동하지 않습니다
 - v8 조사 자료에 **'출장' 태그가 붙은 식당이 0곳**입니다 (용산 데이터만 있어서)
 - 공개 URL에 PwC 로고와 회사명이 노출됩니다. 팀·회사 확인 필요
