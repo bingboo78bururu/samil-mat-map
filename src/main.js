@@ -15,7 +15,7 @@ const notice = document.getElementById('notice');
 const footerLabel = document.getElementById('footer-label');
 
 footerLabel.textContent =
-  '사내 메일 인증은 다음 단계입니다. 가격은 확인된 값만 표시하고, 확인하지 못한 가격은 ‘가격 미확인’으로 둡니다. 후기는 구성원 개인의 경험과 의견입니다.';
+  '가격은 확인된 값만 표시하고, 확인하지 못한 가격은 ‘가격 미확인’으로 둡니다. 후기는 구성원 개인의 경험과 의견입니다.';
 
 // --- .env 가 없을 때 ---------------------------------------------------
 if (!IS_CONFIGURED) {
@@ -57,7 +57,7 @@ function render() {
   if (!session) {
     headerUser.hidden = true;
     notice.innerHTML =
-      '<strong>로그인이 필요한 서비스</strong> · 사내 메일 인증은 아직 연결되지 않았습니다';
+      '<strong>로그인이 필요한 서비스</strong>';
     renderLogin(app);
     return;
   }
@@ -65,7 +65,7 @@ function render() {
   headerUser.hidden = false;
   document.getElementById('who').textContent = getDisplayName();
   notice.innerHTML =
-    '<strong>검토용 시제품</strong> · 사내 메일 인증은 아직 연결되지 않았습니다';
+    '<strong>검토용 시제품</strong>';
 
   // 로그인 직후 목록 데이터를 한 번 불러옵니다.
   if (state.status === 'idle') {
