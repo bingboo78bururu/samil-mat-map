@@ -1,7 +1,7 @@
 // 필터·요약·약도 로직 점검용 일회성 스크립트 (앱에는 포함되지 않습니다).
 //   node reference/smoke.mjs
 import { state, candidates, clearFilters, applyQuick, conditionLabel } from '../src/state.js';
-import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf } from '../src/ui.js';
+import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf, mapLink } from '../src/ui.js';
 import { mapPanel } from '../src/map.js';
 import { QUICK } from '../src/config.js';
 import { regionFromAddress, cuisineFromCategory, placeLink } from '../src/kakao.js';
@@ -98,6 +98,14 @@ eq('핀 개수 = 좌표 있는 식당 수', (panel.match(/class="pin"/g) || []).
 eq("좌표 없는 1곳은 '위치 확인 중'으로 안내", panel.includes('위치 확인 중 1곳'), true);
 const noCoords = mapPanel([], []);
 eq('좌표가 하나도 없으면 약도를 안 그린다', noCoords.includes('<svg'), false);
+
+console.log('\n── 지도에서 보기 링크 ──');
+const google = 'https://www.google.com/maps/place/?q=place_id:abc';
+eq('카카오 장소 ID가 있으면 카카오맵 장소 페이지', mapLink({ name: '식당', kakao_place_id: '1171680157', lat: 37.5, lng: 126.9, link: google }), 'https://place.map.kakao.com/1171680157');
+eq('좌표만 있으면 카카오맵 핀', mapLink({ name: '도마 스시', kakao_place_id: null, lat: 37.5291, lng: 126.97, link: google }), 'https://map.kakao.com/link/map/%EB%8F%84%EB%A7%88%20%EC%8A%A4%EC%8B%9C,37.5291,126.97');
+eq('둘 다 없으면 등록된 링크', mapLink({ name: '식당', kakao_place_id: null, lat: null, lng: null, link: google }), google);
+eq('아무것도 없으면 빈 값', mapLink({ name: '식당', kakao_place_id: null, lat: null, lng: null, link: null }), '');
+eq('공유 문구도 카카오 링크', shareText({ name: '식당', menu: '메뉴', address: '주소', walk_min: 3, dist_m: 200, kakao_place_id: '9', lat: 37.5, lng: 126.9, link: google }).split('\n').at(-1), 'https://place.map.kakao.com/9');
 
 console.log('\n── 도보 거리 표시 ──');
 eq('좌표 없음 → 위치 확인 중', walkLabel({ walk_min: null, lat: null, lng: null }), '위치 확인 중');

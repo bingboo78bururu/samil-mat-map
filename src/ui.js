@@ -85,9 +85,20 @@ export function summarize(r) {
   return { count: peers.length, avg, paidN: paid.length, top, hasVirtual: peers.some((v) => v.kind === 'virtual') };
 }
 
+// '지도에서 보기' 주소. 카카오 장소 ID → 카카오맵 장소 페이지, 좌표만 있으면 → 카카오맵 핀,
+// 둘 다 없을 때만 등록된 출처 링크(구글 지도 등)를 씁니다.
+export function mapLink(r) {
+  if (/^\d{1,20}$/.test(String(r.kakao_place_id ?? ''))) return `https://place.map.kakao.com/${r.kakao_place_id}`;
+  if (Number.isFinite(r.lat) && Number.isFinite(r.lng)) {
+    return `https://map.kakao.com/link/map/${encodeURIComponent(String(r.name).replace(/,/g, ' '))},${r.lat},${r.lng}`;
+  }
+  return r.link && validLink(r.link) ? r.link : '';
+}
+
 // 팀 메신저로 보낼 공유 문구
 export function shareText(r) {
-  const link = r.link && validLink(r.link) ? '\n' + r.link : '';
+  const url = mapLink(r);
+  const link = url ? '\n' + url : '';
   return `[삼일맛지도] 오늘은 여기 어때요? ${r.name} (${r.menu})\n${r.address} · ${walkLabel(r)}${link}`;
 }
 
