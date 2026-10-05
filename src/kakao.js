@@ -1,11 +1,11 @@
-// 카카오 장소 검색. 추천 등록(S3)에서 상호명으로 장소를 찾아 주소·지역·지도 링크를 채웁니다.
+// 카카오 SDK. 추천 등록(S3)의 장소 검색과 목록(S1)의 지도에 씁니다.
 // JavaScript 키는 공개 키입니다. 카카오 콘솔에 등록한 도메인에서만 동작합니다.
 // 키가 없거나 SDK를 못 불러오면 검색 없이 직접 입력으로 동작합니다.
 import { KAKAO_JS_KEY, CUISINES, HQ } from './config.js';
 
 let sdkPromise = null;
 
-function loadSdk() {
+export function loadSdk() {
   if (!KAKAO_JS_KEY) return Promise.reject(new Error('NO_KAKAO_KEY'));
   if (window.kakao?.maps?.services) return Promise.resolve(window.kakao);
   if (sdkPromise) return sdkPromise;

@@ -152,6 +152,7 @@ export function renderRegister(app) {
         sourceType: value('sourceType') || null,
         authorName: value('author'),
         reason: value('reason'),
+        ...pickedCoords(form, value('address')),
       });
 
       // 새 항목이 보이도록 조건을 전체로 초기화한 뒤 목록으로 돌아갑니다.
@@ -169,6 +170,13 @@ export function renderRegister(app) {
   };
 
   scrollToTop();
+}
+
+// 검색으로 고른 장소의 좌표. 고른 뒤 주소를 손으로 바꿨다면 좌표가 맞지 않을 수 있어 보내지 않습니다.
+function pickedCoords(form, address) {
+  const d = form.dataset;
+  if (!d.placeLat || !d.placeLng || d.placeAddress !== address) return {};
+  return { lat: Number(d.placeLat), lng: Number(d.placeLng), kakaoPlaceId: d.placeId || null };
 }
 
 // --- 카카오 장소 검색 --------------------------------------------------
@@ -248,6 +256,11 @@ function bindPlaceSearch(form) {
     if (region) set('region', region);
     const link = placeLink(place);
     if (link) set('link', link);
+    // 카카오 결과의 x = 경도, y = 위도
+    const lat = Number(place.y), lng = Number(place.x);
+    Object.assign(form.dataset, Number.isFinite(lat) && Number.isFinite(lng) && address
+      ? { placeLat: String(lat), placeLng: String(lng), placeId: link ? String(place.id) : '', placeAddress: form.elements.address.value.trim() }
+      : { placeLat: '', placeLng: '', placeId: '', placeAddress: '' });
     const { cuisine, sub } = cuisineFromCategory(place.category_name);
     if (cuisine) set('cuisine', cuisine);
     // 세분류는 사용자가 직접 쓴 값이면 두고, 비었거나 앞서 자동으로 채운 값이면 바꿉니다.

@@ -13,14 +13,20 @@ export const priceLabel = (r) => (r.price == null ? '가격 미확인' : won(r.p
 export const kindLabel = (r) => (r.sub ? `${r.cuisine} · ${r.sub}` : r.cuisine);
 
 // 본사 기준 도보 거리. 좌표가 없으면 '위치 확인 중'. 임의 값을 만들지 않습니다.
-export const walkLabel = (r) =>
-  r.walk_min == null
-    ? '위치 확인 중'
-    : r.walk_min <= 1 && r.dist_m === 0
-      ? '본사 건물 내'
-      : `본사에서 도보 약 ${r.walk_min}분`;
+// 좌표는 있는데 도보 시간이 없으면 DB가 '도보로 갈 거리가 아님'(12km 밖)으로 판단한 곳입니다.
+const farAway = (r) => r.walk_min == null && r.lat != null && r.lng != null;
 
-export const walkShort = (r) => (r.walk_min == null ? '위치 확인 중' : `도보 ${r.walk_min}분`);
+export const walkLabel = (r) =>
+  farAway(r)
+    ? '본사에서 멀어요'
+    : r.walk_min == null
+      ? '위치 확인 중'
+      : r.walk_min <= 1 && r.dist_m === 0
+        ? '본사 건물 내'
+        : `본사에서 도보 약 ${r.walk_min}분`;
+
+export const walkShort = (r) =>
+  farAway(r) ? '본사에서 멀어요' : r.walk_min == null ? '위치 확인 중' : `도보 ${r.walk_min}분`;
 
 export const tagsHtml = (r) => (r.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join('');
 
