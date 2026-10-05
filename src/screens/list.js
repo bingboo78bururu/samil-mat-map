@@ -4,7 +4,7 @@ import {
   state, candidates, clearFilters, applyQuick, loadRestaurants,
   regionOptions, cuisineOptions, conditionLabel,
 } from '../state.js';
-import { toDetail } from '../router.js';
+import { toDetail, toList, toAll } from '../router.js';
 import { openRandom } from './random.js';
 import { mapPanel, mountKakaoMap } from '../map.js';
 import {
@@ -12,7 +12,15 @@ import {
   options, selectOptions, peerReviews, researchMemo,
 } from '../ui.js';
 
-export function renderList(app) {
+// 메인(#/)은 카드를 4줄까지만, 전체 목록(#/all)은 모두 보여줍니다.
+const MAIN_ROWS = 4;
+let fullList = false;
+
+export function renderList(app, opts) {
+  if (opts) {
+    if (Boolean(opts.full) !== fullList) window.scrollTo?.(0, 0);
+    fullList = Boolean(opts.full);
+  }
   const f = state.filters;
 
   app.innerHTML = `
@@ -64,7 +72,8 @@ export function renderList(app) {
       </div>
     </section>
 
-    <section>
+    <section id="list-section">
+      ${fullList ? '<button type="button" class="back" id="to-home">← 메인으로</button>' : ''}
       <div class="section-line">
         <div>
           <h2>동료가 남긴 추천 <span class="count" id="count"></span></h2>
@@ -117,6 +126,8 @@ export function renderList(app) {
     };
   });
 
+  if (fullList) document.getElementById('to-home').onclick = toList;
+
   document.getElementById('clear-filters').onclick = () => { clearFilters(); renderList(app); };
   document.getElementById('hero-random').onclick = openRandom;
   document.getElementById('list-random').onclick = openRandom;
@@ -168,6 +179,7 @@ function update() {
          <button id="empty-reset">조건 초기화</button>
        </div>`;
 
+  if (!fullList) limitRows(cards, rows.length);
   slot.innerHTML = mapPanel(rows, state.restaurants);
   mountKakaoMap(slot.querySelector('.map-panel'), rows, state.restaurants, toDetail);
 
@@ -180,6 +192,39 @@ function update() {
 
   bindDetail();
 }
+
+// 메인에서는 지금 화면의 한 줄 카드 수 × 4줄만 보이고, 나머지는 '+ 더보기'(전체 목록)로.
+// 한 줄 카드 수는 화면 폭에 따라 CSS가 정하므로 그려진 그리드에서 읽습니다.
+function limitRows(cards, total) {
+  const cols = gridColumns(getComputedStyle(cards).gridTemplateColumns);
+  const limit = cols * MAIN_ROWS;
+  // 그리드 칸은 카드를 감싼 바깥 요소라, 그것을 숨겨야 빈 줄 간격이 생기지 않습니다.
+  const items = [...cards.children].filter((el) => !el.classList.contains('more-cards'));
+  items.forEach((el, i) => { el.hidden = i >= limit; });
+  cards.querySelector('.more-cards')?.remove();
+  if (total > limit) {
+    cards.insertAdjacentHTML('beforeend',
+      `<button type="button" class="more-cards" id="more-cards">+ 더보기 <span>(${total - limit}곳 더)</span></button>`);
+    document.getElementById('more-cards').onclick = toAll;
+  }
+}
+
+// 브라우저는 '170px 170px'처럼 계산된 값을, 일부 환경은 'repeat(2, …)'를 돌려줍니다.
+function gridColumns(value) {
+  const repeat = String(value).match(/^repeat\((\d+)/);
+  if (repeat) return Number(repeat[1]);
+  return String(value).split(/\s+/).filter((t) => /px$|fr$|%$/.test(t)).length || 2;
+}
+
+// 화면 폭이 바뀌면(회전 등) 한 줄 카드 수가 달라질 수 있어 다시 맞춥니다.
+let resizeTimer = 0;
+window.addEventListener?.('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const cards = document.getElementById('cards');
+    if (cards && !fullList) limitRows(cards, cards.querySelectorAll('.card').length);
+  }, 150);
+});
 
 // 카드와 약도 핀 둘 다 상세로 이동합니다.
 function bindDetail() {
