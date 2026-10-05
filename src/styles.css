@@ -86,6 +86,11 @@ button:disabled{opacity:.55;cursor:progress}
 
 @media(max-width:760px){
   .header-user .who{display:none}
+  /* 모바일: 로그아웃은 버튼 대신 '식당 추천하기' 위 작은 텍스트 */
+  .header-user{flex-direction:column;align-items:flex-end;gap:2px}
+  .header-user #logout{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:500;padding:4px 2px;min-height:0;line-height:1.2}
+  .header-user #logout::after{content:' >'}
+  .header-user #logout:hover{color:var(--ink)}
   .auth-wrap{margin-top:26px;padding:0 16px}
   .auth-panel{padding:22px}
 }
