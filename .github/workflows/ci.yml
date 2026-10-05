@@ -1,0 +1,22 @@
+# PR과 main push마다 lint·테스트·빌드를 확인합니다.
+# Supabase 연결이 필요 없는 검사만 돌립니다(verify-live.mjs 제외).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

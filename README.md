@@ -2,6 +2,8 @@
 
 삼일 구성원의 맛집 정보와 후기를 함께 쌓고 공유하는 웹앱. 기획안 1~6장 + 화면 목업 v8 기준.
 
+함께 작업하기 전에 [작업 규칙](CONVENTIONS.md)을 읽어주세요.
+
 - 화면: S0 로그인·회원가입 / S1 목록·약도 / S2 식당 상세 / S3 추천 등록 / S4 랜덤 결과(창)
 - 공동 저장소: Supabase (Postgres + RLS)
 - **이번 범위 밖**
@@ -47,6 +49,7 @@ npm install
 cp .env.example .env     # 값을 채웁니다
 npm run dev
 npm test                 # 필터 규칙 + 화면 렌더링 검사 (70건)
+npm run lint             # 실수·구조 위반 검사
 ```
 
 `.env` 에는 **anon public 키만** 넣습니다. `service_role` 키는 빌드 결과물에 그대로 노출되므로 절대 넣지 마세요.
