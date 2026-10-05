@@ -100,7 +100,7 @@ check('개인정보 주의 문구', app.textContent.includes('고객사명, 프�
 check('어떤 자리·인원·실결제 입력칸', !!app.querySelector('[name=situation]') && !!app.querySelector('[name=people]') && !!app.querySelector('[name=paid]'));
 check('영업시간·예약 표시', app.textContent.includes('평일 11:00–22:00') && app.textContent.includes('예약 권장'));
 check('정보 확인일 표시', app.textContent.includes('정보 확인일 2026-10-02'));
-check('지도 링크', app.querySelector('a[href="https://example.com"]')?.rel === 'noopener noreferrer');
+check('지도 링크는 카카오맵 (좌표가 있으면 등록 링크보다 우선)', app.querySelector('a[href^="https://map.kakao.com/link/map/"]')?.rel === 'noopener noreferrer');
 
 console.log('\n── S2 찾을 수 없음 ──');
 await renderDetail(app, 'nope');
