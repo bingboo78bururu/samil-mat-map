@@ -4,7 +4,7 @@ import { createRestaurant, describeError } from '../api.js';
 import { clearFilters, loadRestaurants } from '../state.js';
 import { toList } from '../router.js';
 import {
-  kakaoEnabled, searchPlaces, regionFromAddress, cuisineFromCategory, placeLink,
+  kakaoEnabled, searchPlaces, regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress,
 } from '../kakao.js';
 import {
   options, esc, validLink, scrollToTop,
@@ -152,7 +152,7 @@ export function renderRegister(app) {
         sourceType: value('sourceType') || null,
         authorName: value('author'),
         reason: value('reason'),
-        ...pickedCoords(form, value('address')),
+        ...(await coordsFor(form, value('address'))),
       });
 
       // 새 항목이 보이도록 조건을 전체로 초기화한 뒤 목록으로 돌아갑니다.
@@ -177,6 +177,14 @@ function pickedCoords(form, address) {
   const d = form.dataset;
   if (!d.placeLat || !d.placeLng || d.placeAddress !== address) return {};
   return { lat: Number(d.placeLat), lng: Number(d.placeLng), kakaoPlaceId: d.placeId || null };
+}
+
+// 검색 결과를 고르지 않았거나 주소를 고쳤으면, 입력한 주소를 카카오로 좌표로 바꿉니다(장소 ID는 없음).
+// 바꾸지 못해도 저장은 그대로 진행합니다.
+async function coordsFor(form, address) {
+  const picked = pickedCoords(form, address);
+  if (picked.lat != null) return picked;
+  return (await geocodeAddress(address)) || {};
 }
 
 // --- 카카오 장소 검색 --------------------------------------------------
