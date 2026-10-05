@@ -6,7 +6,7 @@ import {
 } from '../state.js';
 import { toDetail } from '../router.js';
 import { openRandom } from './random.js';
-import { mapPanel } from '../map.js';
+import { mapPanel, mountKakaoMap } from '../map.js';
 import {
   esc, glyph, groupOf, priceLabel, tagsHtml, kindLabel, walkLabel, walkShort,
   options, selectOptions, peerReviews, researchMemo,
@@ -169,6 +169,7 @@ function update() {
        </div>`;
 
   slot.innerHTML = mapPanel(rows, state.restaurants);
+  mountKakaoMap(slot.querySelector('.map-panel'), rows, state.restaurants, toDetail);
 
   if (!rows.length) {
     document.getElementById('empty-reset').onclick = () => {

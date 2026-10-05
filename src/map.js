@@ -1,12 +1,12 @@
-// 약도 — 좌표로 직접 그리는 위치 개요도. 실제 지도 서비스가 아닙니다.
-//
-// 지도 제공자는 카카오맵으로 정해졌지만 API 키 발급 전이라, 그 전까지 쓰는 화면입니다.
-// 카카오맵을 붙일 때는 이 파일의 mapPanel()만 교체하면 됩니다.
+// 식당 위치 패널.
+//   mapPanel()     좌표로 직접 그린 약도(SVG)를 먼저 그립니다. 카카오 키가 없거나 SDK를 못 불러와도 이 화면이 남습니다.
+//   mountKakaoMap() 카카오 SDK가 준비되면 약도 자리를 카카오 지도로 바꿉니다.
 //
 // 원칙: 좌표가 없는 식당은 '위치 확인 중'으로 두고 목록에만 남깁니다.
 //       임의 좌표를 만들지 않습니다(기획안 S1).
 import { HQ } from './config.js';
 import { esc, walkLabel } from './ui.js';
+import { kakaoEnabled, loadSdk } from './kakao.js';
 
 const W = 280, H = 280, PAD = 18;
 const hasCoords = (r) => r.lat != null && r.lng != null;
@@ -71,7 +71,7 @@ export function mapPanel(rows, allRestaurants) {
       <div class="map-panel">
         <h3>식당 위치 한눈에</h3>
         <p>아직 좌표가 있는 식당이 없어요. 목록에서 확인해 주세요.</p>
-        <div class="placeholder">카카오맵 연결 전이에요. 주소를 좌표로 바꾸면 이 자리에 위치가 표시됩니다.</div>
+        <div class="placeholder">주소를 좌표로 바꾸면 이 자리에 위치가 표시됩니다.</div>
       </div>`;
   }
 
@@ -84,10 +84,63 @@ export function mapPanel(rows, allRestaurants) {
       <div class="map-legend">
         <span>■ 본사(한강대로 100)</span>
         <span><b style="color:var(--orange)">●</b> 후보 식당</span>
-        <span>점선: 직선 500m·1km</span>
+        <span class="sketch-only">점선: 직선 500m·1km</span>
       </div>
-      ${m.outside ? `<p class="map-extra">약도 범위 밖 ${m.outside}곳은 목록에서 확인해 주세요.</p>` : ''}
+      ${m.outside ? `<p class="map-extra sketch-only">약도 범위 밖 ${m.outside}곳은 목록에서 확인해 주세요.</p>` : ''}
       ${m.missing ? `<p class="map-extra">위치 확인 중 ${m.missing}곳은 목록에만 표시돼요.</p>` : ''}
-      <div class="placeholder">약도 · 좌표로 그린 위치 개요도이며 실제 지도 서비스가 아니에요. 카카오맵 연결은 다음 단계입니다.</div>
+      <div class="placeholder sketch-only">약도 · 좌표로 그린 위치 개요도이며 실제 지도 서비스가 아니에요.</div>
     </div>`;
+}
+
+// --- 카카오 지도 ---------------------------------------------------------
+// 목록이 다시 그려지면(필터 변경) 새 패널에 다시 붙습니다. 그 사이 패널이 바뀌었으면 아무것도 하지 않습니다.
+export async function mountKakaoMap(panel, rows, allRestaurants, onPick) {
+  const placed = rows.filter(hasCoords);
+  if (!panel || !kakaoEnabled() || !panel.querySelector('.map-svg')) return;
+
+  let kakao;
+  try { kakao = await loadSdk(); } catch { return; } // 약도를 그대로 둡니다
+  if (!panel.isConnected) return;
+
+  const box = document.createElement('div');
+  box.className = 'kakao-map';
+  box.setAttribute('role', 'region');
+  box.setAttribute('aria-label', '본사 기준 후보 식당 위치 지도');
+  panel.querySelector('.map-svg').replaceWith(box);
+  panel.querySelectorAll('.sketch-only').forEach((el) => el.remove());
+
+  const { maps } = kakao;
+  const hq = new maps.LatLng(HQ.lat, HQ.lng);
+  const map = new maps.Map(box, { center: hq, level: 5 });
+  map.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
+
+  const hqMark = document.createElement('div');
+  hqMark.className = 'kmap-hq';
+  hqMark.textContent = '본사';
+  new maps.CustomOverlay({ map, position: hq, content: hqMark, yAnchor: 0.5, zIndex: 2 });
+
+  for (const r of placed) {
+    const pin = document.createElement('button');
+    pin.type = 'button';
+    pin.className = 'kmap-pin';
+    pin.title = `${r.name} · ${walkLabel(r)}`;
+    pin.setAttribute('aria-label', `${r.name} 상세 보기`);
+    pin.onclick = () => onPick(r.id);
+    new maps.CustomOverlay({ map, position: new maps.LatLng(r.lat, r.lng), content: pin, yAnchor: 0.5, zIndex: 3 });
+  }
+
+  // 축척은 약도와 같이 본사 1.3km 안쪽 후보 기준. 멀리 있는 곳은 지도를 움직여 봅니다.
+  const bounds = new maps.LatLngBounds();
+  bounds.extend(hq);
+  const near = placed.filter((r) => { const p = toMeters(r); return Math.hypot(p.x, p.y) <= 1300; });
+  near.forEach((r) => bounds.extend(new maps.LatLng(r.lat, r.lng)));
+  if (near.length) map.setBounds(bounds, 30, 30, 30, 30);
+
+  const far = placed.length - near.length;
+  const note = document.createElement('div');
+  note.className = 'placeholder';
+  note.textContent = far
+    ? `카카오맵 · 본사에서 먼 ${far}곳은 지도를 움직이면 보여요. 핀을 누르면 상세로 이동해요.`
+    : '카카오맵 · 핀을 누르면 상세로 이동해요.';
+  panel.append(note);
 }

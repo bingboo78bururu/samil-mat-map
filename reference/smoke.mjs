@@ -99,6 +99,12 @@ eq("좌표 없는 1곳은 '위치 확인 중'으로 안내", panel.includes('위
 const noCoords = mapPanel([], []);
 eq('좌표가 하나도 없으면 약도를 안 그린다', noCoords.includes('<svg'), false);
 
+console.log('\n── 도보 거리 표시 ──');
+eq('좌표 없음 → 위치 확인 중', walkLabel({ walk_min: null, lat: null, lng: null }), '위치 확인 중');
+eq('좌표 있고 도보 시간 없음(12km 밖) → 멀어요', walkLabel({ walk_min: null, lat: 35.1, lng: 129.0 }), '본사에서 멀어요');
+eq('본사 건물 내', walkLabel({ walk_min: 1, dist_m: 0, lat: 37.5288, lng: 126.9686 }), '본사 건물 내');
+eq('도보 N분', walkLabel({ walk_min: 7, dist_m: 450, lat: 37.53, lng: 126.97 }), '본사에서 도보 약 7분');
+
 console.log('\n── 카카오 장소 → 등록 칸 ──');
 eq('서울은 구 이름', regionFromAddress('서울 용산구 한강로2가 191'), '용산');
 eq('광역시는 시 이름', regionFromAddress('부산 해운대구 우동 1411'), '부산');

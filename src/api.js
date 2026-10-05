@@ -56,6 +56,10 @@ export async function createRestaurant(input) {
     p_source_type: input.sourceType || null,
     p_author_name: input.authorName || null,
     p_body: input.reason,
+    // 카카오 장소 검색으로 고른 경우에만 값이 있습니다. 거리·도보 시간은 DB가 계산합니다.
+    p_lat: input.lat ?? null,
+    p_lng: input.lng ?? null,
+    p_kakao_place_id: input.kakaoPlaceId || null,
   });
 
   if (error) throw error;
