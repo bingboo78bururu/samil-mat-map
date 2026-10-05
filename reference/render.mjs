@@ -128,19 +128,41 @@ check('오류가 입력칸별로 붙는다', app.querySelectorAll('.field-error'
 check('식당명 칸에 오류 표시', app.querySelector('[name=name]')?.getAttribute('aria-invalid') === 'true');
 check('상황 미선택 오류', app.querySelector('fieldset .field-error')?.textContent.includes('추천 상황'));
 
-console.log('\n── S3 비슷한 식당이 있으면 저장 전에 확인 ──');
+const fillValid = (f, name, address) => {
+  f.elements.name.value = name; f.elements.address.value = address;
+  f.elements.menu.value = '국밥'; f.elements.reason.value = '중복 확인용';
+  f.querySelector('[name=tags]').checked = true;
+};
+const submitAndWait = async (f) => {
+  f.dispatchEvent(new dom.window.Event('submit', { cancelable: true, bubbles: true }));
+  await new Promise((r) => setTimeout(r, 20));
+};
+
+console.log('\n── S3 이미 등록된 가게 → 팝업 ──');
+state.restaurants[0].kakao_place_id = '777';
+renderRegister(app);
+const f1 = app.querySelector('#register-form');
+fillValid(f1, '가상 식당 A', '서울 용산구 한강대로 100');
+// 카카오 검색에서 같은 장소(777)를 고른 것처럼
+Object.assign(f1.dataset, { placeLat: '37.5305', placeLng: '126.97', placeId: '777', placeAddress: '서울 용산구 한강대로 100' });
+await submitAndWait(f1);
+const dlg = app.querySelector('#dup-dialog');
+check('팝업이 뜬다', dlg?.open === true);
+check('팝업 문구', dlg?.textContent.includes('이미 등록된 가게예요') && dlg.textContent.includes('후기를 등록할 수 있어요'));
+check('예 / 아니오 버튼', !!app.querySelector('#dup-yes') && !!app.querySelector('#dup-no'));
+app.querySelector('#dup-yes').click();
+await new Promise((r) => setTimeout(r, 10));
+check('예 → 그 가게 상세로', dom.window.location.hash === '#/r/a' && dlg.open === false, dom.window.location.hash);
+state.restaurants[0].kakao_place_id = null;
+
+console.log('\n── S3 비슷한 식당이 있으면 저장하지 않음 ──');
 renderRegister(app);
 const f2 = app.querySelector('#register-form');
-const put = (n, v) => { f2.elements[n].value = v; };
-put('name', '가상 식당 A 신용산점'); put('address', '서울 용산구 한강대로 100 1층');
-put('menu', '국밥'); put('reason', '비슷한 이름 확인용');
-f2.querySelector('[name=tags]').checked = true;
-f2.dispatchEvent(new dom.window.Event('submit', { cancelable: true, bubbles: true }));
-await new Promise((r) => setTimeout(r, 20));
+fillValid(f2, '가상 식당 A 신용산점', '서울 용산구 한강대로 100 1층');
+await submitAndWait(f2);
 const dupBox = app.querySelector('#dup-box');
-check('혹시 이 식당인가요? 안내가 뜬다', dupBox && !dupBox.hidden && dupBox.textContent.includes('혹시 이 식당인가요?'));
-check('기존 식당으로 가는 버튼', !!dupBox?.querySelector('[data-dup="a"]'));
-check("'그대로 등록' 버튼", !!app.querySelector('#dup-proceed'));
+check("'해당 장소를 찾을 수 없습니다'만 뜬다", dupBox && !dupBox.hidden && dupBox.textContent === '해당 장소를 찾을 수 없습니다');
+check('팝업은 뜨지 않는다', app.querySelector('#dup-dialog')?.open !== true);
 check('저장 버튼이 다시 눌린다', app.querySelector('#register-form button[type=submit]')?.disabled === false);
 
 console.log('\n── S4 랜덤 ──');

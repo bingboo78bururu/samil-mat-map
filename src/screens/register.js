@@ -85,6 +85,7 @@ export function renderRegister(app) {
       </label>
 
       <div class="dup-box" id="dup-box" role="status" hidden></div>
+      <dialog id="dup-dialog" class="dup-dialog" aria-label="이미 등록된 가게"></dialog>
       <p class="error" id="register-error" role="alert"></p>
 
       <div class="form-actions">
@@ -143,17 +144,13 @@ export function renderRegister(app) {
 
     const coords = await coordsFor(form, value('address'));
 
-    // 같은 가게가 이미 있는지: 장소 ID가 같으면 막고, 가깝고 이름이 비슷하면 한 번 확인받습니다.
+    // 같은 가게가 이미 있는지: 장소 ID가 같으면 기존 가게로 안내하고,
+    // 장소 ID로 못 가렸는데 가깝고 이름이 비슷한 곳이 있으면 저장하지 않습니다.
     const dup = samePlace(coords.kakaoPlaceId, state.restaurants);
     if (dup) { showDuplicate(dup); restore(); return; }
 
     const similar = similarNearby({ name: value('name'), address: value('address'), ...coords }, state.restaurants);
-    const confirmKey = similar.map((r) => r.id).join(',');
-    if (similar.length && form.dataset.dupConfirmed !== confirmKey) {
-      showSimilar(similar, () => { form.dataset.dupConfirmed = confirmKey; form.requestSubmit(); });
-      restore();
-      return;
-    }
+    if (similar.length) { showNotFound(); restore(); return; }
 
     try {
       // 공동 저장소에 성공적으로 저장된 뒤에만 성공을 알립니다(기획안 S3).
@@ -196,29 +193,34 @@ export function renderRegister(app) {
 }
 
 // --- 중복 안내 ----------------------------------------------------------
+// 이미 등록된 가게: 팝업으로 묻고, 예 → 그 가게 상세(후기 남기기), 아니오 → 이전 페이지.
 function showDuplicate(r) {
-  const box = document.getElementById('dup-box');
-  box.innerHTML = `
-    <strong>이미 등록된 식당이에요 · ${esc(r.name)}</strong>
-    <p>같은 가게를 새로 등록하는 대신, 기존 추천에 후기를 남겨주세요. 후기가 한곳에 모여요.</p>
-    <button type="button" class="primary" id="dup-go">여기에 후기 남기기 →</button>`;
-  box.hidden = false;
-  document.getElementById('dup-go').onclick = () => toDetail(r.id);
-  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const dialog = document.getElementById('dup-dialog');
+  dialog.innerHTML = `
+    <div class="dup-dialog-body">
+      <h2>이미 등록된 가게예요</h2>
+      <p><strong>${esc(r.name)}</strong>은(는) 이미 추천이 있어요.<br>해당 가게 페이지로 이동해서 후기를 등록할 수 있어요. 이동할까요?</p>
+      <div class="dup-dialog-actions">
+        <button type="button" id="dup-no">아니오</button>
+        <button type="button" class="primary" id="dup-yes">예</button>
+      </div>
+    </div>`;
+  document.getElementById('dup-yes').onclick = () => { dialog.close(); toDetail(r.id); };
+  document.getElementById('dup-no').onclick = () => { dialog.close(); goBack(); };
+  if (!dialog.open) dialog.showModal();
 }
 
-function showSimilar(list, onProceed) {
+// 앱 안에서 들어온 경우 브라우저 뒤로가기, 주소로 바로 들어왔으면 목록으로
+function goBack() {
+  if (window.history.length > 1) window.history.back();
+  else toList();
+}
+
+// 장소 ID로 못 가렸지만 가깝고 이름이 비슷한 곳이 있을 때. 저장하지 않습니다.
+function showNotFound() {
   const box = document.getElementById('dup-box');
-  box.innerHTML = `
-    <strong>혹시 이 식당인가요?</strong>
-    <p>가까운 곳에 이름이 비슷한 추천이 있어요. 같은 가게라면 그곳에 후기를 남겨주세요.</p>
-    <ul class="dup-list">${list.map((r) => `
-      <li><button type="button" data-dup="${esc(r.id)}">${esc(r.name)} <span>${esc(r.address)}</span></button></li>`).join('')}
-    </ul>
-    <button type="button" id="dup-proceed">다른 식당이에요, 그대로 등록</button>`;
+  box.textContent = '해당 장소를 찾을 수 없습니다';
   box.hidden = false;
-  box.querySelectorAll('[data-dup]').forEach((b) => { b.onclick = () => toDetail(b.dataset.dup); });
-  document.getElementById('dup-proceed').onclick = () => { box.hidden = true; onProceed(); };
   box.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
@@ -311,7 +313,7 @@ function bindPlaceSearch(form) {
     const dup = samePlace(place.id, state.restaurants);
     if (dup) {
       close();
-      hint.textContent = '이미 등록된 식당이에요. 아래 안내를 확인해주세요.';
+      hint.textContent = '이미 등록된 가게예요.';
       showDuplicate(dup);
       return;
     }
