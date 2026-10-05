@@ -5,6 +5,7 @@ import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf, mapLin
 import { mapPanel } from '../src/map.js';
 import { QUICK } from '../src/config.js';
 import { regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress } from '../src/kakao.js';
+import { samePlace, similarNearby, similarName, baseName, distanceM } from '../src/dedupe.js';
 
 const R = (o) => ({
   id: o.id, name: o.name, region: o.region ?? '용산', address: '서울 용산구 한강대로 100',
@@ -124,6 +125,26 @@ eq('술집은 음식 종류를 정하지 않는다', cuisineFromCategory('음식
 eq('지도 링크', placeLink({ id: '12345' }), 'https://place.map.kakao.com/12345');
 eq('키가 없으면 주소 변환은 건너뛴다(null)', await geocodeAddress('서울 용산구 한강대로48길 18'), null);
 eq('이상한 ID면 링크 없음', placeLink({ id: '12a' }), '');
+
+console.log('\n── 중복 등록 막기 ──');
+const salt = { id: 's', name: '소금제면소 용산', address: '서울 용산구 한강대로40길 32 1층', lat: 37.53008, lng: 126.97107, kakao_place_id: '1276387489' };
+const goch = { id: 'g', name: '고청담 용산', address: '서울 용산구 한강대로 100', lat: 37.52879, lng: 126.96867, kakao_place_id: '1924399542' };
+const kont = { id: 'k', name: '콘타이', address: '서울 용산구 한강대로 100', lat: 37.52927, lng: 126.96855, kakao_place_id: '27320968' };
+const pool = [salt, goch, kont];
+eq('지점명 떼기: 소금제면소 용산점 → 소금제면소', baseName('소금제면소 용산점'), '소금제면소');
+eq('같은 장소 ID → 같은 가게', samePlace('1276387489', pool)?.id, 's');
+eq('장소 ID 없으면 판단 안 함', samePlace(null, pool), null);
+eq('용산점 / 용산 / 신용산점은 비슷한 이름', [similarName('소금제면소 용산점', '소금제면소 용산'), similarName('소금제면소 신용산점', '소금제면소 용산')], [true, true]);
+eq('같은 건물의 다른 가게는 비슷하지 않음', similarName('고청담 용산', '콘타이'), false);
+eq('장소 ID 없이 직접 입력 + 30m 안 + 비슷한 이름 → 확인 요청',
+  similarNearby({ name: '소금제면소 신용산점', lat: 37.53010, lng: 126.97110 }, pool).map((r) => r.id), ['s']);
+eq('비슷한 이름이라도 30m 밖이면 묻지 않음',
+  similarNearby({ name: '소금제면소 숙대점', lat: 37.5454, lng: 126.9730 }, pool).length, 0);
+eq('둘 다 장소 ID가 있고 다르면 다른 가게',
+  similarNearby({ name: '소금제면소 용산점', lat: 37.53008, lng: 126.97107, kakaoPlaceId: '999' }, pool).length, 0);
+eq('좌표가 없으면 같은 주소 + 비슷한 이름으로',
+  similarNearby({ name: '고청담', address: '서울 용산구 한강대로 100 2층' }, pool).map((r) => r.id), ['g']);
+eq('거리 계산 (본사 → 소금제면소 약 255m)', Math.round(distanceM({ lat: 37.528837, lng: 126.968647 }, salt) / 10) * 10, 250);
 
 console.log(`\n${fail ? '❌' : '✅'}  통과 ${pass} / 실패 ${fail}\n`);
 process.exit(fail ? 1 : 0);

@@ -1,8 +1,9 @@
 // S3. 추천 등록
 import { THEMES, CUISINES, DEFAULT_REGION, MSG } from '../config.js';
 import { createRestaurant, describeError } from '../api.js';
-import { clearFilters, loadRestaurants } from '../state.js';
-import { toList } from '../router.js';
+import { state, clearFilters, loadRestaurants } from '../state.js';
+import { toList, toDetail } from '../router.js';
+import { samePlace, similarNearby } from '../dedupe.js';
 import {
   kakaoEnabled, searchPlaces, regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress,
 } from '../kakao.js';
@@ -83,6 +84,7 @@ export function renderRegister(app) {
         <small>확인한 실제 링크가 있을 때만 입력해주세요.</small>
       </label>
 
+      <div class="dup-box" id="dup-box" role="status" hidden></div>
       <p class="error" id="register-error" role="alert"></p>
 
       <div class="form-actions">
@@ -105,6 +107,7 @@ export function renderRegister(app) {
     e.preventDefault();
     clearFieldErrors(form);
     errorBox.textContent = '';
+    document.getElementById('dup-box').hidden = true;
 
     const value = (n) => form.elements[n].value.trim();
     const tags = [...form.querySelectorAll('[name=tags]:checked')].map((x) => x.value);
@@ -136,6 +139,21 @@ export function renderRegister(app) {
     const submit = form.querySelector('button[type="submit"]');
     submit.disabled = true;
     submit.textContent = MSG.saving;
+    const restore = () => { submit.disabled = false; submit.textContent = '추천 등록'; };
+
+    const coords = await coordsFor(form, value('address'));
+
+    // 같은 가게가 이미 있는지: 장소 ID가 같으면 막고, 가깝고 이름이 비슷하면 한 번 확인받습니다.
+    const dup = samePlace(coords.kakaoPlaceId, state.restaurants);
+    if (dup) { showDuplicate(dup); restore(); return; }
+
+    const similar = similarNearby({ name: value('name'), address: value('address'), ...coords }, state.restaurants);
+    const confirmKey = similar.map((r) => r.id).join(',');
+    if (similar.length && form.dataset.dupConfirmed !== confirmKey) {
+      showSimilar(similar, () => { form.dataset.dupConfirmed = confirmKey; form.requestSubmit(); });
+      restore();
+      return;
+    }
 
     try {
       // 공동 저장소에 성공적으로 저장된 뒤에만 성공을 알립니다(기획안 S3).
@@ -152,7 +170,7 @@ export function renderRegister(app) {
         sourceType: value('sourceType') || null,
         authorName: value('author'),
         reason: value('reason'),
-        ...(await coordsFor(form, value('address'))),
+        ...coords,
       });
 
       // 새 항목이 보이도록 조건을 전체로 초기화한 뒤 목록으로 돌아갑니다.
@@ -162,14 +180,46 @@ export function renderRegister(app) {
       toList();
     } catch (err) {
       // 실패하면 입력한 값을 그대로 둡니다. 성공 메시지를 먼저 띄우지 않습니다.
-      errorBox.textContent = describeError(err) || MSG.saveFailed;
-      errorBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      submit.disabled = false;
-      submit.textContent = '추천 등록';
+      // 화면이 모르는 사이 다른 사람이 같은 장소를 먼저 등록했다면 DB가 기존 식당 id 를 알려줍니다.
+      const existing = String(err?.message || '').includes('DUPLICATE_PLACE') && err.details;
+      if (existing) {
+        showDuplicate({ id: existing, name: value('name') });
+      } else {
+        errorBox.textContent = describeError(err) || MSG.saveFailed;
+        errorBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      restore();
     }
   };
 
   scrollToTop();
+}
+
+// --- 중복 안내 ----------------------------------------------------------
+function showDuplicate(r) {
+  const box = document.getElementById('dup-box');
+  box.innerHTML = `
+    <strong>이미 등록된 식당이에요 · ${esc(r.name)}</strong>
+    <p>같은 가게를 새로 등록하는 대신, 기존 추천에 후기를 남겨주세요. 후기가 한곳에 모여요.</p>
+    <button type="button" class="primary" id="dup-go">여기에 후기 남기기 →</button>`;
+  box.hidden = false;
+  document.getElementById('dup-go').onclick = () => toDetail(r.id);
+  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function showSimilar(list, onProceed) {
+  const box = document.getElementById('dup-box');
+  box.innerHTML = `
+    <strong>혹시 이 식당인가요?</strong>
+    <p>가까운 곳에 이름이 비슷한 추천이 있어요. 같은 가게라면 그곳에 후기를 남겨주세요.</p>
+    <ul class="dup-list">${list.map((r) => `
+      <li><button type="button" data-dup="${esc(r.id)}">${esc(r.name)} <span>${esc(r.address)}</span></button></li>`).join('')}
+    </ul>
+    <button type="button" id="dup-proceed">다른 식당이에요, 그대로 등록</button>`;
+  box.hidden = false;
+  box.querySelectorAll('[data-dup]').forEach((b) => { b.onclick = () => toDetail(b.dataset.dup); });
+  document.getElementById('dup-proceed').onclick = () => { box.hidden = true; onProceed(); };
+  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 // 검색으로 고른 장소의 좌표. 고른 뒤 주소를 손으로 바꿨다면 좌표가 맞지 않을 수 있어 보내지 않습니다.
@@ -234,7 +284,7 @@ function bindPlaceSearch(form) {
     results = places;
     list.innerHTML = places.map((p, i) => `
       <li class="place-option" role="option" id="place-opt-${i}" data-i="${i}" aria-selected="false">
-        <strong>${esc(p.place_name)}</strong>
+        <strong>${esc(p.place_name)}${samePlace(p.id, state.restaurants) ? ' <em class="place-dup">이미 등록됨</em>' : ''}</strong>
         <span>${esc(p.road_address_name || p.address_name)}</span>
         ${p.category_name ? `<span class="place-cat">${esc(p.category_name.split('>').map((s) => s.trim()).slice(1).join(' · ') || p.category_name)}</span>` : ''}
       </li>`).join('');
@@ -257,6 +307,15 @@ function bindPlaceSearch(form) {
   };
 
   const choose = (place) => {
+    // 이미 등록된 가게면 칸을 채우지 않고 기존 추천으로 안내합니다.
+    const dup = samePlace(place.id, state.restaurants);
+    if (dup) {
+      close();
+      hint.textContent = '이미 등록된 식당이에요. 아래 안내를 확인해주세요.';
+      showDuplicate(dup);
+      return;
+    }
+    document.getElementById('dup-box').hidden = true;
     const address = place.road_address_name || place.address_name || '';
     set('name', place.place_name || '');
     if (address) set('address', address);
