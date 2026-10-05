@@ -93,7 +93,7 @@ export function renderRegister(app) {
         <button type="submit" class="primary">추천 등록</button>
       </div>
 
-      <p class="footnote">직접 등록한 식당은 좌표가 없어 약도에 표시되지 않고 '위치 확인 중'으로 보여요. 주소를 좌표로 바꾸는 작업은 빌드팀이 카카오맵 연결 때 함께 처리합니다.</p>
+      <p class="footnote">카카오맵 검색으로 고르지 않은 식당은 입력한 주소로 위치를 찾아요. 주소로 위치를 찾지 못하면 '위치 확인 중'으로 보여요.</p>
     </form>`;
 
   document.getElementById('cancel-top').onclick = toList;

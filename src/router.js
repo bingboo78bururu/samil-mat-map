@@ -3,6 +3,7 @@
 //   #/            목록
 //   #/r/<id>      식당 상세
 //   #/new         추천 등록
+//   #/all         전체 식당 목록 (메인은 4줄까지만)
 
 let handler = () => {};
 
@@ -12,6 +13,7 @@ export function parseRoute() {
 
   if (head === 'r' && tail) return { name: 'detail', id: decodeURIComponent(tail) };
   if (head === 'new') return { name: 'register' };
+  if (head === 'all') return { name: 'all' };
   return { name: 'list' };
 }
 
@@ -34,3 +36,4 @@ export function startRouter(onRoute) {
 export const toList = () => navigate('/');
 export const toDetail = (id) => navigate('/r/' + encodeURIComponent(id));
 export const toRegister = () => navigate('/new');
+export const toAll = () => navigate('/all');

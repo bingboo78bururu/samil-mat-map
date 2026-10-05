@@ -1,6 +1,6 @@
 // S0. 로그인 / 회원가입
 // 로그인하지 않으면 다른 화면은 열리지 않습니다.
-import { ALLOWED_EMAIL_DOMAINS } from '../config.js';
+import { ALLOWED_EMAIL_DOMAINS, DEMO_EMAIL, DEMO_PASSWORD } from '../config.js';
 import { signIn, signUp, emailDomainAllowed, describeAuthError } from '../auth.js';
 import { esc, clearFieldErrors, showFieldError, focusFirstError, notify } from '../ui.js';
 
@@ -9,6 +9,7 @@ let mode = 'login'; // login | signup
 export function renderLogin(app) {
   const domains = ALLOWED_EMAIL_DOMAINS.map((d) => '@' + d).join(', ');
   const isSignup = mode === 'signup';
+  const demo = !isSignup && DEMO_EMAIL && DEMO_PASSWORD;
 
   app.innerHTML = `
     <div class="auth-wrap">
@@ -25,13 +26,13 @@ export function renderLogin(app) {
         <form id="auth-form" novalidate>
           <label class="field">회사 이메일
             <input class="control" name="email" type="email" autocomplete="email"
-                   inputmode="email" placeholder="${esc(ALLOWED_EMAIL_DOMAINS[0] ? 'name' + '@' + ALLOWED_EMAIL_DOMAINS[0] : 'name@company.com')}">
+                   inputmode="email"${demo ? ` value="${esc(DEMO_EMAIL)}"` : ''} placeholder="${esc(ALLOWED_EMAIL_DOMAINS[0] ? 'name' + '@' + ALLOWED_EMAIL_DOMAINS[0] : 'name@company.com')}">
             ${domains ? `<small>${esc(domains)} 주소로만 가입할 수 있어요.</small>` : ''}
           </label>
 
           <label class="field">비밀번호
             <input class="control" name="password" type="password"
-                   autocomplete="${isSignup ? 'new-password' : 'current-password'}"
+                   autocomplete="${isSignup ? 'new-password' : 'current-password'}"${demo ? ` value="${esc(DEMO_PASSWORD)}"` : ''}
                    placeholder="${isSignup ? '8자 이상' : ''}">
           </label>
 
@@ -41,6 +42,7 @@ export function renderLogin(app) {
             <small>후기에 보일 이름이에요. 익명으로 쓰려면 비워두세요.</small>
           </label>` : ''}
 
+          ${demo ? '<p class="demo-note">시연용 테스트 계정이 입력돼 있어요. 로그인 버튼만 누르면 돼요.</p>' : ''}
           <p class="error" id="auth-error" role="alert"></p>
           <button class="primary" type="submit">${isSignup ? '회원가입' : '로그인'}</button>
         </form>

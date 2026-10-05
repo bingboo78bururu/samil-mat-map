@@ -179,6 +179,26 @@ check('후보 1곳 안내 문구', rc.includes('이 조건에 맞는 추천이 �
 check('추천 이유 = 첫 후기', rc.includes('첫 후기 = 추천 이유'), rc.slice(0, 200));
 check('공유 버튼', !!document.getElementById('share-random'));
 
+console.log('\n── S1 메인은 4줄까지만, 더보기 → 전체 목록 ──');
+{
+  const saved = state.restaurants;
+  state.restaurants = Array.from({ length: 12 }, (_, i) => ({ ...saved[0], id: 'm' + i, name: '가상 식당 ' + i, reviews: [] }));
+  clearFilters();
+  renderList(app, { full: false });
+  const shown = () => [...app.querySelectorAll('.card')].filter((c) => !c.closest('[hidden]')).length;
+  check('메인: 4줄(2열 × 4 = 8곳)만 보인다', shown() === 8, `${shown()}곳`);
+  check("'+ 더보기 (4곳 더)'", app.querySelector('#more-cards')?.textContent.includes('4곳 더'));
+  check('메인에는 ← 메인으로 없음', !app.querySelector('#to-home'));
+  app.querySelector('#more-cards').click();
+  await new Promise((r) => setTimeout(r, 10));
+  check('더보기 → #/all', dom.window.location.hash === '#/all', dom.window.location.hash);
+  renderList(app, { full: true });
+  check('전체 목록: 12곳 모두', shown() === 12, `${shown()}곳`);
+  check('전체 목록: 더보기 없음 / ← 메인으로 있음', !app.querySelector('#more-cards') && !!app.querySelector('#to-home'));
+  state.restaurants = saved;
+  renderList(app, { full: false });
+}
+
 console.log('\n── 런타임 오류 ──');
 check('처리되지 않은 오류 없음', errors.length === 0, errors.join(' | '));
 

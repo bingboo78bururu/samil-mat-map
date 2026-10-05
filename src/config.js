@@ -56,6 +56,11 @@ export const IS_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 // 카카오 JavaScript 키(공개 키). 없으면 등록 화면의 장소 검색만 빠지고 직접 입력으로 동작합니다.
 export const KAKAO_JS_KEY = env.VITE_KAKAO_JS_KEY || '';
 
+// 시연용: 로그인 화면에 테스트 계정을 미리 채웁니다. 값이 없으면 빈 칸(기존 동작).
+// VITE_ 값은 배포된 사이트 코드에 그대로 들어갑니다 — 시연용 계정만 넣으세요. 저장소(공개)에는 넣지 않습니다.
+export const DEMO_EMAIL = env.VITE_DEMO_EMAIL || '';
+export const DEMO_PASSWORD = env.VITE_DEMO_PASSWORD || '';
+
 // 화면에 그대로 쓰는 문구. 기획안에 지정된 문장을 바꾸지 마세요.
 export const MSG = {
   loading: '추천을 불러오는 중이에요.',
