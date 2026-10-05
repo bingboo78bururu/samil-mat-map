@@ -721,3 +721,78 @@ notify pgrst, 'reload schema';
 -- 확인 — 트리거 1줄, 함수 인자 15개
 select tgname from pg_trigger where tgrelid = 'public.restaurants'::regclass and tgname = 'set_restaurant_distance';
 select pronargs from pg_proc where proname = 'create_restaurant_with_review';
+
+-- ------------------------------------------------------------
+-- 007. 같은 카카오 장소는 한 번만 등록
+-- ------------------------------------------------------------
+create unique index if not exists restaurants_kakao_place_id_key
+  on public.restaurants (kakao_place_id)
+  where kakao_place_id is not null;
+
+create or replace function public.create_restaurant_with_review(
+  p_name           text,
+  p_region         text,
+  p_address        text,
+  p_cuisine        text,
+  p_sub            text,
+  p_menu           text,
+  p_price          integer,
+  p_tags           text[],
+  p_link           text,
+  p_source_type    text,
+  p_author_name    text,
+  p_body           text,
+  p_lat            double precision default null,
+  p_lng            double precision default null,
+  p_kakao_place_id text default null
+)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $fn$
+declare
+  v_id  uuid;
+  v_uid uuid := auth.uid();
+  v_dup uuid;
+begin
+  if v_uid is null then
+    raise exception 'NOT_AUTHENTICATED' using errcode = '42501';
+  end if;
+
+  -- 같은 카카오 장소가 이미 있으면 기존 식당 id 를 알려줍니다(유일 인덱스가 최종 판정).
+  select id into v_dup from public.restaurants
+  where kakao_place_id = nullif(btrim(coalesce(p_kakao_place_id, '')), '');
+  if v_dup is not null then
+    raise exception 'DUPLICATE_PLACE' using errcode = '23505', detail = v_dup::text;
+  end if;
+
+  -- 좌표는 둘 다 있을 때만 저장합니다.
+  insert into public.restaurants
+    (name, region, address, cuisine, sub, menu, price, tags, link, source_type,
+     lat, lng, kakao_place_id, created_by)
+  values
+    (btrim(p_name), btrim(p_region), btrim(p_address), p_cuisine,
+     nullif(btrim(coalesce(p_sub, '')), ''),
+     btrim(p_menu), p_price, p_tags,
+     nullif(btrim(coalesce(p_link, '')), ''),
+     nullif(btrim(coalesce(p_source_type, '')), ''),
+     case when p_lat is not null and p_lng is not null then p_lat end,
+     case when p_lat is not null and p_lng is not null then p_lng end,
+     nullif(btrim(coalesce(p_kakao_place_id, '')), ''),
+     v_uid)
+  returning id into v_id;
+
+  -- 등록 시의 '추천 이유'가 그 식당의 첫 후기가 됩니다.
+  insert into public.reviews (restaurant_id, author_name, body, kind, created_by)
+  values (v_id, nullif(btrim(coalesce(p_author_name, '')), ''), btrim(p_body), 'member', v_uid);
+
+  return v_id;
+end;
+$fn$;
+
+-- 바뀐 함수를 API가 바로 알도록
+notify pgrst, 'reload schema';
+
+-- 확인 — 인덱스 1줄
+select indexname from pg_indexes where tablename = 'restaurants' and indexname = 'restaurants_kakao_place_id_key';

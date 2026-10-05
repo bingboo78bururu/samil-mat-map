@@ -93,6 +93,9 @@ export async function createReview({ restaurantId, authorName, body, situation, 
 // DB가 돌려준 오류를 사용자에게 보여줄 한 줄로 바꿉니다.
 export function describeError(error) {
   const text = String(error?.message || error || '');
+  if (text.includes('DUPLICATE_PLACE') || error?.code === '23505') {
+    return '이미 등록된 식당이에요. 목록에서 찾아 후기를 남겨주세요.';
+  }
   if (text.includes('RATE_LIMITED')) {
     return '짧은 시간에 너무 많이 등록했어요. 잠시 후 다시 시도해주세요.';
   }
