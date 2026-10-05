@@ -109,3 +109,8 @@ button:disabled{opacity:.55;cursor:progress}
 .dup-dialog-body{padding:28px}.dup-dialog-body h2{font-size:21px;margin-bottom:10px}.dup-dialog-body p{font-size:14px;color:var(--muted);margin-bottom:22px}.dup-dialog-body strong{color:var(--ink)}.dup-dialog-actions{display:flex;justify-content:flex-end;gap:8px}.dup-dialog-actions button{min-width:88px}
 .more-cards{grid-column:1/-1;justify-self:center;border:0;background:transparent;color:var(--orange);font-weight:700;font-size:14px;padding:12px 18px}.more-cards span{color:var(--muted);font-weight:500;font-size:12px}.more-cards:hover{text-decoration:underline}#list-section>.back{margin-bottom:12px}
 .demo-note{font-size:12px;color:#31684e;background:#eef5f0;border-radius:8px;padding:8px 11px;margin:0 0 12px}
+
+/* 카드가 <button>이라 같은 줄의 더 긴 카드에 맞춰 늘어나면 내용이 세로 가운데로 내려갑니다.
+   색 영역(card-art)이 항상 카드 맨 위에 붙도록 위에서부터 쌓습니다. */
+.card-wrap .card{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
+.card-wrap .card-art{flex-shrink:0}
