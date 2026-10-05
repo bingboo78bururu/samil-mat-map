@@ -4,7 +4,7 @@ import { state, candidates, clearFilters, applyQuick, conditionLabel } from '../
 import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf, mapLink } from '../src/ui.js';
 import { mapPanel } from '../src/map.js';
 import { QUICK } from '../src/config.js';
-import { regionFromAddress, cuisineFromCategory, placeLink } from '../src/kakao.js';
+import { regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress } from '../src/kakao.js';
 
 const R = (o) => ({
   id: o.id, name: o.name, region: o.region ?? '용산', address: '서울 용산구 한강대로 100',
@@ -122,6 +122,7 @@ eq('아시아음식 → 아시안', cuisineFromCategory('음식점 > 아시아�
 eq('카페 → 카페·디저트', cuisineFromCategory('음식점 > 카페 > 커피전문점').cuisine, '카페·디저트');
 eq('술집은 음식 종류를 정하지 않는다', cuisineFromCategory('음식점 > 술집 > 호프,요리주점').cuisine, null);
 eq('지도 링크', placeLink({ id: '12345' }), 'https://place.map.kakao.com/12345');
+eq('키가 없으면 주소 변환은 건너뛴다(null)', await geocodeAddress('서울 용산구 한강대로48길 18'), null);
 eq('이상한 ID면 링크 없음', placeLink({ id: '12a' }), '');
 
 console.log(`\n${fail ? '❌' : '✅'}  통과 ${pass} / 실패 ${fail}\n`);

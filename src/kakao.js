@@ -40,6 +40,27 @@ export async function searchPlaces(query) {
   });
 }
 
+// 주소 → 좌표. 검색 결과를 고르지 않고 직접 입력한 식당에 씁니다.
+// 찾지 못하거나 SDK가 안 되면 null — 좌표 없이 저장하고 '위치 확인 중'으로 둡니다.
+export async function geocodeAddress(address) {
+  if (!kakaoEnabled() || !String(address || '').trim()) return null;
+  try {
+    const kakao = await loadSdk();
+    const geocoder = new kakao.maps.services.Geocoder();
+    const docs = await new Promise((resolve) => {
+      const timer = setTimeout(() => resolve([]), 5000);
+      geocoder.addressSearch(address, (data, status) => {
+        clearTimeout(timer);
+        resolve(status === kakao.maps.services.Status.OK ? data : []);
+      });
+    });
+    const lat = Number(docs[0]?.y), lng = Number(docs[0]?.x);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  } catch {
+    return null;
+  }
+}
+
 const METRO = ['부산', '대구', '인천', '광주', '대전', '울산', '세종'];
 
 // '서울 용산구 한강대로 100' → '용산', '부산 해운대구 …' → '부산', '경기 성남시 분당구 …' → '성남'
