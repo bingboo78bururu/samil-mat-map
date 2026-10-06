@@ -62,8 +62,10 @@ export async function signIn({ email, password }) {
   return data;
 }
 
+// 이 기기만 로그아웃합니다. 기본값(global)은 같은 계정의 모든 기기를 끊어서,
+// 시연 계정 하나를 여럿이 쓸 때 한 명의 로그아웃이 전원을 로그아웃시킵니다.
 export async function signOut() {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: 'local' });
   currentSession = null;
 }
 

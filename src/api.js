@@ -67,8 +67,10 @@ export async function createRestaurant(input) {
 }
 
 export async function createReview({ restaurantId, authorName, body, situation, people, paid }) {
-  const { data: userData } = await supabase.auth.getUser();
-  const uid = userData?.user?.id;
+  // 서버에 다시 묻는 getUser() 대신 이 기기의 로그인 정보를 씁니다. getUser()는 세션이 서버에서
+  // 사라졌다고 답하면 이 기기를 로그아웃시킵니다. 실제 권한 검사는 DB의 RLS가 합니다.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const uid = sessionData?.session?.user?.id;
   if (!uid) throw new Error('NOT_AUTHENTICATED');
 
   const { data, error } = await supabase
