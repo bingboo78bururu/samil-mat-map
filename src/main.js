@@ -19,6 +19,8 @@ footerLabel.textContent =
 
 // --- .env 가 없을 때 ---------------------------------------------------
 if (!IS_CONFIGURED) {
+  // 상단 안내 바는 평소엔 숨기고, 연결 설정이 빠졌을 때(개발 환경)만 보여줍니다.
+  notice.hidden = false;
   notice.innerHTML = '<strong>설정 필요</strong> · Supabase 연결 정보가 없습니다';
   app.innerHTML = `
     <div class="auth-wrap"><div class="auth-panel">
@@ -56,16 +58,12 @@ function render() {
 
   if (!session) {
     headerUser.hidden = true;
-    notice.innerHTML =
-      '<strong>로그인이 필요한 서비스</strong>';
     renderLogin(app);
     return;
   }
 
   headerUser.hidden = false;
   document.getElementById('who').textContent = getDisplayName();
-  notice.innerHTML =
-    '<strong>검토용 시제품</strong>';
 
   // 로그인 직후 목록 데이터를 한 번 불러옵니다.
   if (state.status === 'idle') {
