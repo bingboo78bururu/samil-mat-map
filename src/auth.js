@@ -21,6 +21,12 @@ export function getDisplayName() {
   return user.user_metadata?.display_name || user.email || '';
 }
 
+// 가입 때 적은 표시 이름만 돌려줍니다. 후기 작성자 칸을 미리 채울 때 쓰므로
+// 이메일로 대신하지 않습니다(동료 모두에게 공개되는 값이라).
+export function getProfileName() {
+  return String(getUser()?.user_metadata?.display_name || '').trim();
+}
+
 export async function initAuth(onChange) {
   const { data } = await supabase.auth.getSession();
   currentSession = data.session ?? null;

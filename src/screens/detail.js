@@ -3,6 +3,7 @@ import { THEMES, PEOPLE, MSG } from '../config.js';
 import { state, getRestaurant, loadRestaurants } from '../state.js';
 import { fetchRestaurant, createReview, describeError } from '../api.js';
 import { toList } from '../router.js';
+import { getProfileName } from '../auth.js';
 import {
   esc, glyph, groupOf, won, priceLabel, tagsHtml, kindLabel, walkLabel,
   dateLabel, authorLabel, options, mapLink, peerReviews, summarize,
@@ -53,8 +54,6 @@ export async function renderDetail(app, id) {
 function paint(app, r) {
   const peers = peerReviews(r);
   const s = summarize(r);
-  // 조사 메모를 맨 아래로 내려 동료 후기가 먼저 보이게 합니다.
-  const ordered = [...(r.reviews || [])].sort((a, b) => (a.kind === 'research' ? 1 : 0) - (b.kind === 'research' ? 1 : 0));
 
   app.innerHTML = `
     <button class="back" id="back-list">← 추천 목록으로</button>
@@ -82,7 +81,10 @@ function paint(app, r) {
       <section class="detail-reviews">
         <section class="reviews">
           <h2>동료 후기 <span class="count" id="review-count">${peers.length}</span></h2>
-          <div id="reviews">${ordered.map(reviewItem).join('')}</div>
+          <!-- 조사 메모(kind='research')는 후기가 아니라서 이 목록에 보이지 않습니다. DB에는 남아 있습니다. -->
+          <div id="reviews">${peers.length
+            ? peers.map(reviewItem).join('')
+            : '<p class="muted review-empty">아직 동료 후기가 없어요. 다녀왔다면 첫 후기를 남겨주세요.</p>'}</div>
 
           <form class="review-form" id="review-form" novalidate>
             <h3>어떤 자리였나요?</h3>
@@ -103,7 +105,7 @@ function paint(app, r) {
             </label>
 
             <label class="field">표시 이름
-              <input class="control" name="author" maxlength="30" placeholder="선택 · 비워두면 동료로 표시">
+              <input class="control" name="author" maxlength="30" value="${esc(getProfileName().slice(0, 30))}" placeholder="선택 · 비워두면 동료로 표시">
             </label>
 
             <label class="field">후기 <span class="muted">*</span>

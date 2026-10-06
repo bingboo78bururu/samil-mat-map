@@ -3,6 +3,7 @@ import { THEMES, CUISINES, DEFAULT_REGION, MSG } from '../config.js';
 import { createRestaurant, describeError } from '../api.js';
 import { state, clearFilters, loadRestaurants } from '../state.js';
 import { toList, toDetail } from '../router.js';
+import { getProfileName } from '../auth.js';
 import { samePlace, similarNearby } from '../dedupe.js';
 import {
   kakaoEnabled, searchPlaces, regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress,
@@ -64,7 +65,7 @@ export function renderRegister(app) {
           <small>조사만 했다면 '자료 조사'를 골라주세요.</small>
         </label>
         <label class="field">표시 이름
-          <input name="author" class="control" maxlength="30" placeholder="선택 · 비워두면 동료로 표시">
+          <input name="author" class="control" maxlength="30" value="${esc(getProfileName().slice(0, 30))}" placeholder="선택 · 비워두면 동료로 표시">
         </label>
       </div>
 
