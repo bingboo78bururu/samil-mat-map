@@ -105,7 +105,7 @@ console.log('\n══ 5. 값 검증 (DB CHECK 제약) ══');
 }
 
 console.log('\n══ 6. 실제 저장 (앱이 쓰는 경로) ══');
-let newId = null;
+let newId;
 {
   const rpc = await db.rpc('create_restaurant_with_review', {
     p_name: TEST_NAME, p_region: '용산', p_address: '서울 용산구 한강대로 100',

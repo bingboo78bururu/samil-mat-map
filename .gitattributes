@@ -1,0 +1,6 @@
+# 윈도우·맥이 섞인 팀에서 줄바꿈 차이로 diff가 오염되지 않게 저장소에는 LF로 저장합니다.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
