@@ -141,3 +141,40 @@ export async function mountKakaoMap(panel, rows, allRestaurants, onPick) {
   note.textContent = '카카오맵 · 핀을 누르면 상세로 이동해요.';
   panel.append(note);
 }
+
+// --- 식당 상세: 한 곳의 위치 지도 ------------------------------------------
+// 카카오 장소가 있는 식당에 씁니다. 식당 핀과 본사를 함께 보여줍니다.
+// SDK를 못 불러오면 false를 돌려주고, 화면은 링크만 남깁니다.
+export async function mountPlaceMap(box, r) {
+  if (!box || !kakaoEnabled() || !hasCoords(r)) return false;
+
+  let kakao;
+  try { kakao = await loadSdk(); } catch { return false; }
+  if (!box.isConnected) return false;
+
+  const { maps } = kakao;
+  const spot = new maps.LatLng(r.lat, r.lng);
+  const hq = new maps.LatLng(HQ.lat, HQ.lng);
+  const map = new maps.Map(box, { center: spot, level: 3 });
+  map.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
+
+  const hqMark = document.createElement('div');
+  hqMark.className = 'kmap-hq';
+  hqMark.textContent = '본사';
+  new maps.CustomOverlay({ map, position: hq, content: hqMark, yAnchor: 0.5, zIndex: 2 });
+
+  const pin = document.createElement('div');
+  pin.className = 'kmap-pin kmap-pin-static';
+  pin.title = r.name;
+  new maps.CustomOverlay({ map, position: spot, content: pin, yAnchor: 0.5, zIndex: 3 });
+
+  // 본사와 가까우면(1.3km 이내) 둘 다 보이게, 멀면 식당 주변만 보여줍니다.
+  const p = toMeters(r);
+  if (Math.hypot(p.x, p.y) <= 1300) {
+    const bounds = new maps.LatLngBounds();
+    bounds.extend(hq);
+    bounds.extend(spot);
+    map.setBounds(bounds, 40, 40, 40, 40);
+  }
+  return true;
+}

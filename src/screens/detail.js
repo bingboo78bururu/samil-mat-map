@@ -4,6 +4,8 @@ import { state, getRestaurant, loadRestaurants } from '../state.js';
 import { fetchRestaurant, createReview, describeError } from '../api.js';
 import { toList } from '../router.js';
 import { getProfileName } from '../auth.js';
+import { kakaoEnabled } from '../kakao.js';
+import { mountPlaceMap } from '../map.js';
 import {
   esc, glyph, groupOf, won, priceLabel, tagsHtml, kindLabel, walkLabel,
   dateLabel, authorLabel, options, mapLink, onKakao, googleLinkFor, peerReviews, summarize,
@@ -133,7 +135,10 @@ function paint(app, r) {
           ${r.source_type ? `<div><dt>추천 근거</dt><dd>${esc(r.source_type)}</dd></div>` : ''}
         </dl>
         ${onKakao(r)
-          ? `<a href="${esc(mapLink(r))}" target="_blank" rel="noopener noreferrer">지도에서 보기 ↗</a>`
+          ? `${kakaoEnabled() && r.lat != null && r.lng != null
+              ? '<div class="kakao-map detail-map" id="detail-map" role="region" aria-label="식당 위치 지도"></div>'
+              : ''}
+             <a href="${esc(mapLink(r))}" target="_blank" rel="noopener noreferrer">카카오맵에서 크게 보기 ↗</a>`
           : `<p class="map-missing">카카오맵 장소와 연결되지 않은 식당이에요.</p>
              ${googleLinkFor(r)
                ? `<a href="${esc(googleLinkFor(r))}" target="_blank" rel="noopener noreferrer">구글 지도에서 보기 ↗</a>`
@@ -147,6 +152,10 @@ function paint(app, r) {
 
   // 목록 조건은 state.filters에 그대로 남아 있으므로 조건이 유지된 채 돌아갑니다.
   document.getElementById('back-list').onclick = toList;
+
+  // 카카오 지도는 SDK가 준비된 뒤 붙습니다. 못 붙으면 빈 칸을 지우고 링크만 남깁니다.
+  const mapBox = document.getElementById('detail-map');
+  if (mapBox) mountPlaceMap(mapBox, r).then((ok) => { if (!ok) mapBox.remove(); });
 
   bindReviewForm(r);
 }
