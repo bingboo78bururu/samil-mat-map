@@ -114,5 +114,8 @@ button:disabled{opacity:.55;cursor:progress}
    색 영역(card-art)이 항상 카드 맨 위에 붙도록 위에서부터 쌓습니다. */
 .card-wrap .card{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
 .card-wrap .card-art{flex-shrink:0}
+/* 같은 줄 카드 높이가 달라도 '동료 후기 N개' 줄이 카드 맨 아래에 붙도록 남는 공간은 본문이 차지합니다. */
+.card-wrap .card-body{flex:1;display:flex;flex-direction:column}
+.card-wrap .card-foot{margin-top:auto}
 .review-empty{font-size:13px;padding:14px 0 4px;margin:0}
 .map-missing{font-size:13px;color:var(--muted);background:var(--soft);border-radius:10px;padding:10px 12px;margin:0 0 10px}

@@ -67,7 +67,7 @@ check('도보 거리 필터 존재', !!app.querySelector('#walk'));
 check('약도 핀이 그려진다', app.querySelectorAll('.pin').length === 1);
 check('예산 안내 문구', app.textContent.includes('예산 검색에서 가격 미확인 추천은 제외됩니다'));
 check('카드에 최신 후기 발췌', app.querySelector('.review-snippet')?.textContent.includes('가상 후기예요'));
-check('가상 후기 포함 표시', app.querySelector('.card-foot')?.textContent.includes('가상 포함'));
+check('카드에 가상 포함 표시 없음', !app.querySelector('.card-foot')?.textContent.includes('가상 포함'));
 
 console.log('\n── S1 빈 결과 / 로딩 / 실패 ──');
 state.filters.search = '없는식당이름';

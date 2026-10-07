@@ -255,7 +255,7 @@ function card(r) {
           <div class="tags">${tagsHtml(r)}</div>
           <p class="review-snippet">“${esc(snippet)}”</p>
           <div class="card-foot">
-            <strong>동료 후기 ${peers.length}개${peers.some((v) => v.kind === 'virtual') ? ' (가상 포함)' : ''}</strong>
+            <strong>동료 후기 ${peers.length}개</strong>
             <span>↗</span>
           </div>
         </div>
