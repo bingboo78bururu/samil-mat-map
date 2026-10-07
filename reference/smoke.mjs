@@ -1,7 +1,7 @@
 // 필터·요약·약도 로직 점검용 일회성 스크립트 (앱에는 포함되지 않습니다).
 //   node reference/smoke.mjs
 import { state, candidates, clearFilters, applyQuick, conditionLabel } from '../src/state.js';
-import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf, mapLink } from '../src/ui.js';
+import { summarize, walkLabel, priceLabel, kindLabel, shareText, groupOf, mapLink, googleMapsLink, googleLinkFor } from '../src/ui.js';
 import { mapPanel } from '../src/map.js';
 import { QUICK } from '../src/config.js';
 import { regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress } from '../src/kakao.js';
@@ -106,6 +106,10 @@ eq('카카오 장소 ID가 있으면 카카오맵 장소 페이지', mapLink({ n
 eq('좌표만 있으면 카카오맵 핀', mapLink({ name: '도마 스시', kakao_place_id: null, lat: 37.5291, lng: 126.97, link: google }), 'https://map.kakao.com/link/map/%EB%8F%84%EB%A7%88%20%EC%8A%A4%EC%8B%9C,37.5291,126.97');
 eq('둘 다 없으면 등록된 링크', mapLink({ name: '식당', kakao_place_id: null, lat: null, lng: null, link: google }), google);
 eq('아무것도 없으면 빈 값', mapLink({ name: '식당', kakao_place_id: null, lat: null, lng: null, link: null }), '');
+eq('구글 지도 검색 링크', googleMapsLink({ name: '도마 스시', address: '서울 용산구 한강대로38길 29' }), 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('도마 스시 서울 용산구 한강대로38길 29'));
+eq('길이 제한을 넘으면 빈 값', googleMapsLink({ name: '가'.repeat(60), address: '나'.repeat(150) }, 300), '');
+eq('저장된 구글 지도 링크가 있으면 그대로', googleLinkFor({ name: '식당', address: '주소', link: google }), google);
+eq('구글이 아닌 링크면 새로 만든다', googleLinkFor({ name: '식당', address: '주소', link: 'https://example.com' }).startsWith('https://www.google.com/maps/search/'), true);
 eq('공유 문구도 카카오 링크', shareText({ name: '식당', menu: '메뉴', address: '주소', walk_min: 3, dist_m: 200, kakao_place_id: '9', lat: 37.5, lng: 126.9, link: google }).split('\n').at(-1), 'https://place.map.kakao.com/9');
 
 console.log('\n── 도보 거리 표시 ──');

@@ -9,7 +9,7 @@ import {
   kakaoEnabled, searchPlaces, regionFromAddress, cuisineFromCategory, placeLink, geocodeAddress,
 } from '../kakao.js';
 import {
-  options, esc, validLink, scrollToTop,
+  options, esc, validLink, googleMapsLink, scrollToTop,
   clearFieldErrors, showFieldError, focusFirstError, notify,
 } from '../ui.js';
 
@@ -82,7 +82,7 @@ export function renderRegister(app) {
 
       <label class="field">출처·지도 링크
         <input name="link" class="control" placeholder="선택 · https://로 시작하는 주소">
-        <small>확인한 실제 링크가 있을 때만 입력해주세요.</small>
+        <small>확인한 실제 링크가 있을 때만 입력해주세요. 비워두면 카카오맵에서 고르지 않은 식당은 구글 지도 검색 링크가 자동으로 들어가요.</small>
       </label>
 
       <div class="dup-box" id="dup-box" role="status" hidden></div>
@@ -164,7 +164,8 @@ export function renderRegister(app) {
         menu: value('menu'),
         price: rawPrice ? Number(rawPrice) : null,
         tags,
-        link: link || null,
+        // 카카오맵 장소를 고르지 않았고 링크도 비었으면 구글 지도 검색 링크를 넣습니다(DB 길이 제한 안에서만).
+        link: link || (coords.kakaoPlaceId ? null : googleMapsLink({ name: value('name'), address: value('address') }, 300) || null),
         sourceType: value('sourceType') || null,
         authorName: value('author'),
         reason: value('reason'),

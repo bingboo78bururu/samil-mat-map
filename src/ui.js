@@ -85,10 +85,30 @@ export function summarize(r) {
   return { count: peers.length, avg, paidN: paid.length, top, hasVirtual: peers.some((v) => v.kind === 'virtual') };
 }
 
+// 카카오맵 장소와 연결된 식당인지(카카오 장소 ID가 있는지).
+// 없으면 상세 화면에 '카카오맵 장소와 연결되지 않은 식당이에요'와 구글 지도 링크를 보여줍니다.
+export const onKakao = (r) => /^\d{1,20}$/.test(String(r.kakao_place_id ?? ''));
+
+// 구글 지도 검색 링크(키·비용 없음). 식당명 + 주소로 검색합니다.
+// maxLength를 주면 그보다 길 때 '' — DB의 링크 길이 제한(308자)에 맞추기 위해서입니다.
+export function googleMapsLink({ name, address }, maxLength = Infinity) {
+  const query = [name, address].map((s) => String(s || '').trim()).filter(Boolean).join(' ');
+  if (!query) return '';
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return url.length <= maxLength ? url : '';
+}
+
+const isGoogleMaps = (u) => {
+  try { return /(^|\.)google\.[a-z.]+$/.test(new URL(u).hostname) && new URL(u).pathname.startsWith('/maps'); } catch { return false; }
+};
+
+// 카카오맵 장소가 없는 식당의 구글 지도 링크: 저장된 구글 지도 링크가 있으면 그것, 없으면 새로 만듭니다.
+export const googleLinkFor = (r) => (r.link && isGoogleMaps(r.link) ? r.link : googleMapsLink(r));
+
 // '지도에서 보기' 주소. 카카오 장소 ID → 카카오맵 장소 페이지, 좌표만 있으면 → 카카오맵 핀,
 // 둘 다 없을 때만 등록된 출처 링크(구글 지도 등)를 씁니다.
 export function mapLink(r) {
-  if (/^\d{1,20}$/.test(String(r.kakao_place_id ?? ''))) return `https://place.map.kakao.com/${r.kakao_place_id}`;
+  if (onKakao(r)) return `https://place.map.kakao.com/${r.kakao_place_id}`;
   if (Number.isFinite(r.lat) && Number.isFinite(r.lng)) {
     return `https://map.kakao.com/link/map/${encodeURIComponent(String(r.name).replace(/,/g, ' '))},${r.lat},${r.lng}`;
   }

@@ -6,7 +6,7 @@ import { toList } from '../router.js';
 import { getProfileName } from '../auth.js';
 import {
   esc, glyph, groupOf, won, priceLabel, tagsHtml, kindLabel, walkLabel,
-  dateLabel, authorLabel, options, mapLink, peerReviews, summarize,
+  dateLabel, authorLabel, options, mapLink, onKakao, googleLinkFor, peerReviews, summarize,
   scrollToTop, clearFieldErrors, showFieldError, focusFirstError, notify,
 } from '../ui.js';
 
@@ -132,9 +132,12 @@ function paint(app, r) {
           <div><dt>추천 상황</dt><dd>${esc((r.tags || []).join(', '))}</dd></div>
           ${r.source_type ? `<div><dt>추천 근거</dt><dd>${esc(r.source_type)}</dd></div>` : ''}
         </dl>
-        ${mapLink(r)
+        ${onKakao(r)
           ? `<a href="${esc(mapLink(r))}" target="_blank" rel="noopener noreferrer">지도에서 보기 ↗</a>`
-          : '<p class="muted">지도 링크가 아직 없어요. 위 주소를 확인해주세요.</p>'}
+          : `<p class="map-missing">카카오맵 장소와 연결되지 않은 식당이에요.</p>
+             ${googleLinkFor(r)
+               ? `<a href="${esc(googleLinkFor(r))}" target="_blank" rel="noopener noreferrer">구글 지도에서 보기 ↗</a>`
+               : '<p class="muted">지도 링크가 아직 없어요. 위 주소를 확인해주세요.</p>'}`}
         <p class="footnote">${r.info_checked_on ? `정보 확인일 ${esc(r.info_checked_on)}. ` : ''}좌석·가격·영업 정보는 방문 전에 확인해주세요. 후기는 구성원의 경험과 의견입니다.</p>
       </aside>
     </div>`;
