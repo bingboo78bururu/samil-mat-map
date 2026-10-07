@@ -18,11 +18,6 @@ export function renderLogin(app) {
       <p class="auth-intro">동료가 남긴 추천과 후기를 보려면 로그인이 필요해요.</p>
 
       <div class="auth-panel">
-        <div class="auth-tabs" role="group" aria-label="로그인 또는 회원가입 선택">
-          <button type="button" id="tab-login"  aria-pressed="${!isSignup}">로그인</button>
-          <button type="button" id="tab-signup" aria-pressed="${isSignup}">회원가입</button>
-        </div>
-
         <form id="auth-form" novalidate>
           <label class="field">회사 이메일
             <input class="control" name="email" type="email" autocomplete="email"
@@ -44,7 +39,11 @@ export function renderLogin(app) {
 
           ${demo ? '<p class="demo-note">시연용 테스트 계정이 입력돼 있어요. 로그인 버튼만 누르면 돼요.</p>' : ''}
           <p class="error" id="auth-error" role="alert"></p>
-          <button class="primary" type="submit">${isSignup ? '회원가입' : '로그인'}</button>
+          <!-- 지금 모드의 버튼은 제출, 다른 버튼은 모드 전환입니다. -->
+          <div class="auth-tabs" role="group" aria-label="로그인 또는 회원가입">
+            <button type="${isSignup ? 'button' : 'submit'}" id="tab-login"  aria-pressed="${!isSignup}">로그인</button>
+            <button type="${isSignup ? 'submit' : 'button'}" id="tab-signup" aria-pressed="${isSignup}">회원가입</button>
+          </div>
         </form>
 
         <p class="auth-note">
@@ -55,8 +54,8 @@ export function renderLogin(app) {
       </div>
     </div>`;
 
-  document.getElementById('tab-login').onclick = () => { mode = 'login'; renderLogin(app); };
-  document.getElementById('tab-signup').onclick = () => { mode = 'signup'; renderLogin(app); };
+  if (isSignup) document.getElementById('tab-login').onclick = () => { mode = 'login'; renderLogin(app); };
+  else document.getElementById('tab-signup').onclick = () => { mode = 'signup'; renderLogin(app); };
 
   const form = document.getElementById('auth-form');
   const errorBox = document.getElementById('auth-error');
