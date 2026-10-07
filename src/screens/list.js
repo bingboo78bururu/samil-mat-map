@@ -79,7 +79,6 @@ export function renderList(app, opts) {
           <h2>동료가 남긴 추천 <span class="count" id="count"></span></h2>
           <p id="result-caption"></p>
         </div>
-        <button id="list-random">이 조건에서 골라줘 ↗</button>
       </div>
 
       <button type="button" class="mobile-map-jump" id="mobile-map-jump">지도 영역 보기 ↓</button>
@@ -130,7 +129,6 @@ export function renderList(app, opts) {
 
   document.getElementById('clear-filters').onclick = () => { clearFilters(); renderList(app); };
   document.getElementById('hero-random').onclick = openRandom;
-  document.getElementById('list-random').onclick = openRandom;
 
   update();
 }
