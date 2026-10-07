@@ -81,7 +81,7 @@ export function renderList(app, opts) {
         </div>
       </div>
 
-      <button type="button" class="mobile-map-jump" id="mobile-map-jump">지도 영역 보기 ↓</button>
+      <button type="button" class="mobile-map-jump" id="mobile-map-jump">지도로 한 눈에 보기 ↓</button>
 
       <div class="content-grid">
         <div class="cards" id="cards"></div>
