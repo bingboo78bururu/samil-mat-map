@@ -136,11 +136,8 @@ export async function mountKakaoMap(panel, rows, allRestaurants, onPick) {
   near.forEach((r) => bounds.extend(new maps.LatLng(r.lat, r.lng)));
   if (near.length) map.setBounds(bounds, 30, 30, 30, 30);
 
-  const far = placed.length - near.length;
   const note = document.createElement('div');
   note.className = 'placeholder';
-  note.textContent = far
-    ? `카카오맵 · 본사에서 먼 ${far}곳은 지도를 움직이면 보여요. 핀을 누르면 상세로 이동해요.`
-    : '카카오맵 · 핀을 누르면 상세로 이동해요.';
+  note.textContent = '카카오맵 · 핀을 누르면 상세로 이동해요.';
   panel.append(note);
 }
